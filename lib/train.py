@@ -41,10 +41,10 @@ def train(args):
 
         # Create model.
         print("Creating %d layers of %d units." % (args.num_layers, args.size))
-        model = seq2seq_model_utils.create_model(sess, args)
+        model = seq2seq_model_utils.create_model(sess, args, forward_only=False)
 
         # Read data into buckets and compute their sizes.
-        print ("Reading development and training data (limit: %d)." % args.max_train_data_size)
+        print("Reading development and training data (limit: %d)." % args.max_train_data_size)
         dev_set = data_utils.read_data(dev_data, args.buckets, reversed=args.rev_model)
         train_set = data_utils.read_data(train_data, args.buckets, args.max_train_data_size, reversed=args.rev_model)
         train_bucket_sizes = [len(train_set[b]) for b in xrange(len(args.buckets))]
@@ -83,7 +83,7 @@ def train(args):
                                          target_weights, bucket_id, rev_vocab=rev_vocab)
           else:
             _, step_loss, _ = model.step(sess, encoder_inputs, decoder_inputs,
-                                         target_weights, bucket_id, training=True, force_dec_input=True)
+                                         target_weights, bucket_id, forward_only=False, force_dec_input=True)
 
           step_time += (time.time() - start_time) / args.steps_per_checkpoint
           loss += step_loss / args.steps_per_checkpoint
@@ -110,7 +110,8 @@ def train(args):
             # Run evals on development set and print their perplexity.
             for bucket_id in xrange(len(args.buckets)):
               encoder_inputs, decoder_inputs, target_weights = model.get_batch(dev_set, bucket_id)
-              _, eval_loss, _ = model.step(sess, encoder_inputs, decoder_inputs, target_weights, bucket_id)
+              _, eval_loss, _ = model.step(sess, encoder_inputs, decoder_inputs, 
+                                          target_weights, bucket_id, forward_only=True, force_dec_input=False)
 
               eval_ppx = math.exp(eval_loss) if eval_loss < 300 else float('inf')
               print("  eval: bucket %d perplexity %.2f" % (bucket_id, eval_ppx))

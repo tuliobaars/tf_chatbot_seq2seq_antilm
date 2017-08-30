@@ -1,5 +1,11 @@
-# tensorflow chatbot
-### (with seq2seq + attention + dict-compress + beam search + anti-LM + deep reinforcement learning + facebook messenger server)
+# Tensorflow chatbot
+### (with seq2seq + attention + dict-compress + beam search + anti-LM + facebook messenger server)
+
+
+> ####[Update 2017-03-14]
+> 1. Upgrade to tensorflow v1.0.0, no backward compatible since tensorflow have changed so much.   
+> 2. A pre-trained model with twitter corpus is added, just `./go_example` to chat! (or preview my [chat example](https://github.com/Marsan-Ma/tf_chatbot_seq2seq_antilm/blob/master/example_chat.md))
+> 3. You could start from tracing this `go_example` script to know how things work!
 
 
 ## Briefing
@@ -54,13 +60,18 @@ after you trained your model until perplexity under 50 or so, you could do:
 
     python3 main.py --mode test --model_name <MODEL_NAME>
 
+
+**[Note!!!] if you put any parameter overwrite in this main.py commmand, be sure to apply both to train and test, or just modify in lib/config.py for failsafe.**
+
+
+
 ## Start your Facebook Messenger backend server
 
     python3 app.py --model_name <MODEL_NAME>
 
 You may see this [minimum fb_messenger example][b2] for more details like setting up SSL, webhook, and work-arounds for known bug.
 
-Here's an interesting comparison: The left conversation enabled beam search with beam = 10, the response is barely better than always "i don't know". The right conversation enabled anti-language model, which supposed to suppress generic response, thus the response is more interesting.
+Here's an interesting comparison: The left conversation enabled beam search with beam = 10, the response is barely better than always "i don't know". The right conversation also used beam search and additionally, enabled anti-language model. This supposed to suppress generic response, and the response do seems better.
 
 ![messenger.png][h1]
 
@@ -70,6 +81,8 @@ Here's an interesting comparison: The left conversation enabled beam search with
 
 
 ## Deep reinforcement learning
+
+> [Update 2017-03-09] Reinforcement learning does not work now, wait for fix.
 
 If you want some chance to further improve your model, here I implemented a reinforcement learning architecture inspired by [Li et al., 2016][b3]. Just enable the reinforce_learn option in `config.py`, you might want to add your own rule in `step_rf()` function in `lib/seq2seq_mode.py`. 
 
@@ -88,7 +101,7 @@ Here is the classic intro picture show the seq2seq model architecture, quote fro
 [![seq2seq][c3]][c3]
 
 
-The problem is, so far we haven't find a better objective function for charbot. We are still using [MLE (maximum likelyhood estimation)][c4], which is doing good for machine translation, but always generate generic response like "me too", "I think so", "I love you" while doing chat.
+The problem is, so far we haven't find a better objective function for chatbot. We are still using [MLE (maximum likelyhood estimation)][c4], which is doing good for machine translation, but always generate generic response like "me too", "I think so", "I love you" while doing chat.
 
 These responses are not informative, but they do have large probability --- since they tend to appear many times in training corpus. We don't won't our chatbot always replying these noncense, so we need to find some way to make our bot more "interesting", technically speaking, to increase the "perplexity" of reponse.
 

@@ -867,7 +867,7 @@ def embedding_attention_seq2seq(encoder_inputs,
       output_size = num_decoder_symbols
 
     if isinstance(feed_previous, bool):
-      outputs, state = embedding_attention_decoder(
+      return embedding_attention_decoder(
           decoder_inputs,
           encoder_state,
           attention_states,
@@ -879,7 +879,6 @@ def embedding_attention_seq2seq(encoder_inputs,
           output_projection=output_projection,
           feed_previous=feed_previous,
           initial_state_attention=initial_state_attention)
-      return outputs, state, encoder_state
 
     # If feed_previous is a Tensor, we construct 2 graphs and use cond.
     def decoder(feed_previous_bool):
@@ -913,7 +912,7 @@ def embedding_attention_seq2seq(encoder_inputs,
     if nest.is_sequence(encoder_state):
       state = nest.pack_sequence_as(
           structure=encoder_state, flat_sequence=state_list)
-    return outputs_and_state[:outputs_len], state, encoder_state
+    return outputs_and_state[:outputs_len], state
 
 
 def one2many_rnn_seq2seq(encoder_inputs,
@@ -1047,8 +1046,8 @@ def one2many_rnn_seq2seq(encoder_inputs,
   return outputs_dict, state_dict
 
 
-def sequence_loss_by_example(targets,
-                             logits,
+def sequence_loss_by_example(logits,
+                             targets,
                              weights,
                              average_across_timesteps=True,
                              softmax_loss_function=None,
@@ -1086,7 +1085,6 @@ def sequence_loss_by_example(targets,
         crossent = nn_ops.sparse_softmax_cross_entropy_with_logits(
             labels=target, logits=logit)
       else:
-        # (bug: https://github.com/tensorflow/tensorflow/pull/6494/files)
         crossent = softmax_loss_function(target, logit)
       log_perp_list.append(crossent * weight)
     log_perps = math_ops.add_n(log_perp_list)
@@ -1097,8 +1095,8 @@ def sequence_loss_by_example(targets,
   return log_perps
 
 
-def sequence_loss(targets,
-                  logits,
+def sequence_loss(logits,
+                  targets,
                   weights,
                   average_across_timesteps=True,
                   average_across_batch=True,
@@ -1126,8 +1124,8 @@ def sequence_loss(targets,
   with ops.name_scope(name, "sequence_loss", logits + targets + weights):
     cost = math_ops.reduce_sum(
         sequence_loss_by_example(
-            targets,
             logits,
+            targets,
             weights,
             average_across_timesteps=average_across_timesteps,
             softmax_loss_function=softmax_loss_function))
@@ -1195,28 +1193,26 @@ def model_with_buckets(encoder_inputs,
   all_inputs = encoder_inputs + decoder_inputs + targets + weights
   losses = []
   outputs = []
-  encoder_states = []
   with ops.name_scope(name, "model_with_buckets", all_inputs):
     for j, bucket in enumerate(buckets):
       with variable_scope.variable_scope(
           variable_scope.get_variable_scope(), reuse=True if j > 0 else None):
-        bucket_outputs, decoder_states, encoder_state = seq2seq(encoder_inputs[:bucket[0]],
+        bucket_outputs, _ = seq2seq(encoder_inputs[:bucket[0]],
                                     decoder_inputs[:bucket[1]])
         outputs.append(bucket_outputs)
-        encoder_states.append(encoder_state)
         if per_example_loss:
           losses.append(
               sequence_loss_by_example(
-                  targets[:bucket[1]],
                   outputs[-1],
+                  targets[:bucket[1]],
                   weights[:bucket[1]],
                   softmax_loss_function=softmax_loss_function))
         else:
           losses.append(
               sequence_loss(
-                  targets[:bucket[1]],
                   outputs[-1],
+                  targets[:bucket[1]],
                   weights[:bucket[1]],
                   softmax_loss_function=softmax_loss_function))
 
-  return outputs, losses, encoder_states
+  return outputs, losses

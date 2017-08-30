@@ -18,7 +18,7 @@ def predict(args, debug=False):
 
     with tf.Session() as sess, open(results_path, 'w') as results_fh:
         # Create model and load parameters.
-        args.batch_size = 1  # We decode one sentence at a time.
+        args.batch_size = 1
         model = create_model(sess, args)
 
         # Load vocabularies.
@@ -32,10 +32,10 @@ def predict(args, debug=False):
             predicted_sentence = get_predicted_sentence(args, sentence, vocab, rev_vocab, model, sess, debug=debug)
             if isinstance(predicted_sentence, list):
                 print("%s : (%s)" % (sentence, datetime.now()))
-                results_fh.write("%s : (%s)" % (sentence, datetime.now()))
+                results_fh.write("%s : (%s)\n" % (sentence, datetime.now()))
                 for sent in predicted_sentence:
                     print("  (%s) -> %s" % (sent['prob'], sent['dec_inp']))
-                    results_fh.write("  (%f) -> %s" % (sent['prob'], sent['dec_inp']))
+                    results_fh.write("  (%f) -> %s\n" % (sent['prob'], sent['dec_inp']))
             else:
                 print(sentence, ' -> ', predicted_sentence)
                 results_fh.write("%s -> %s\n" % (sentence, predicted_sentence))
